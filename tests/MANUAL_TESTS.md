@@ -31,3 +31,4 @@ Preconditions:
 | 2026-11-21 | Bluetooth LE | H1 (detection) | PASS | buttonNumber 3 (HID 4) and 4 (HID 5) from M21-Mouse vid 0x32C2 pid 0x6621; no keyboard/consumer events |
 | 2026-11-21 | Bluetooth LE | H2 (calibration) | PASS | previous=buttonNumber 4, next=buttonNumber 3; config.json verified=true |
 | 2026-11-21 | Bluetooth LE | H3–H7 (previous/next switching, no double trigger, browser, normal clicks) | PASS (user-reported) | controller.log: 24 actions (14 next, 10 previous), 0 failures |
+| 2026-11-22 | Bluetooth LE | H13–H15 (click 3/4, double 3/4) | PASS (user-reported) | log: 7× App Expose, 8× Mission Control, 3× double Next, 3× double Previous; 0 failures |

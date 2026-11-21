@@ -149,7 +149,7 @@ Status values:
 - **Close when:** H3–H7 pass and the log shows one `->` line per press.
 - **Resolved, 2026-11-21 16:44–16:45 (Bluetooth LE):** the user tested and reported that everything works. `logs/controller.log` shows 24 actions from pid 42513: 14 × `button 3 -> Next Desktop` and 10 × `button 4 -> Previous Desktop`. There were no `FAILED` lines and no tap re-enables. The shortest gap between actions was about 0.31 s, consistent with the 300 ms debounce. H3–H7 passed according to the user's report.
 
-## ISSUE-014 — Feature: double-click gestures (3 = Mission Control, 4 = App Exposé): `OPEN` (implemented, awaiting hardware test)
+## ISSUE-014 — Feature: double-click gestures on side buttons: `RESOLVED`
 
 - **Requested:** 2026-11-22 by the user. GitHub #14.
 - **Before:** a second press within `debounceMs` (300 ms) was swallowed, so a double-click acted as one single click.
@@ -165,6 +165,8 @@ Status values:
   - `swift test` gives 35/35 (14 new tests for double-click and config).
   - Installed v1.1.0. The log shows `buttonNumber 3 double -> Mission Control` and `buttonNumber 4 double -> App Expose` loaded and the tap active.
   - Hardware tests H13–H15 are pending.
+- **Final layout (user, 2026-11-22):** click 3 = App Exposé, click 4 = Mission Control, double 3 = Desktop right, double 4 = Desktop left. The user corrected their first request (double 3/4 swapped, click 3 → App Exposé). Click 4 = Mission Control was inferred and confirmed by use.
+- **Hardware verification (2026-11-22, Bluetooth LE):** the user reported "ใช้ได้แล้ว" ("it works now"). `controller.log` after the final reload shows 7× `button 3 -> App Expose`, 8× `button 4 -> Mission Control`, 3× `button 3 (double) -> Next Desktop` and 3× `button 4 (double) -> Previous Desktop`. There were no `FAILED` lines, and no double-click also triggered its single action.
 
 ## ISSUE-015 — Scripts matched JSON with a fixed whitespace format: `RESOLVED`
 
