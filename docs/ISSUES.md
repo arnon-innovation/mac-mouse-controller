@@ -176,3 +176,22 @@ Status values:
 - **Resolution:** all greps and seds now use `"key" *: *value` (`grep -E`, `sed -E`). `install.sh` was already tolerant.
 - **Verification:** `tests/integration.sh --agent` gives 26/26.
 - **Prevention:** never match JSON with literal whitespace in shell. Prefer the binary's `validate` command, or tolerant regexes.
+
+## ISSUE-016 — calibrate would duplicate Previous/Next after a custom remap: `RESOLVED`
+
+- **Found:** 2026-11-22, by code review while applying the user's new layout: click 3 = Mission Control, click 4 = App Exposé, double 3 = Desktop left, double 4 = Desktop right.
+- **Repro:** with that layout, run `scripts/calibrate.sh`.
+- **Expected:** only the button numbers of Previous/Next Desktop change.
+- **Actual (before the fix):**
+  - calibrate rebuilt `Previous Desktop` / `Next Desktop` as **single** mappings, which collide with Mission Control / App Exposé on the same buttons (validation error, exit 4);
+  - it also kept the old double Previous/Next mappings.
+- **Root cause:** calibrate assumed Previous/Next are always single-click.
+- **Resolution:** calibrate now preserves every mapping. It only assigns the captured button numbers to `Previous Desktop` / `Next Desktop` and keeps their existing gesture and action.
+- **Verification:** compiles; `swift test` 35/35; `tests/integration.sh --agent` 26/26. The calibrate path itself needs real presses and was checked by code review.
+
+## ISSUE-017 — Commit 6e1c1ca was pushed with a failing unit test: `RESOLVED`
+
+- **Found:** 2026-11-22, `swift test` gave 34/35. `testShippedExampleConfigIsValid` expected 2 mappings; the example now has 4.
+- **Root cause:** `config/config.example.json` was extended with double-click examples *after* the last `swift test` run. Before committing, only `tests/integration.sh` was re-run.
+- **Resolution:** the test now asserts 2 single + 2 double mappings.
+- **Prevention:** before every commit, run **both** `swift test` and `tests/integration.sh` against the final tree.

@@ -200,17 +200,17 @@ func runCalibrate() -> Int32 {
     func finish() {
         let prevBtn = order[0], nextBtn = order[1]
         var config = (try? ConfigLoader.load(path: path)) ?? ControllerConfig(mappings: [])
-        func action(_ name: String, default d: KeyAction) -> KeyAction {
-            config.mappings.first { $0.name == name && $0.gesture == .single }?.action ?? d
-        }
-        let prev = action("Previous Desktop", default: KeyAction(key: "leftArrow", modifiers: ["control"]))
-        let next = action("Next Desktop", default: KeyAction(key: "rightArrow", modifiers: ["control"]))
-        // Double-click mappings are tied to physical button numbers, which calibration
-        // does not change: keep them.
+        // Keep every existing mapping. Only "Previous Desktop" / "Next Desktop" get the newly
+        // captured button numbers; their gesture and action are preserved (ISSUE-016).
+        func existing(_ name: String) -> Mapping? { config.mappings.first { $0.name == name } }
+        let prev = existing("Previous Desktop")
+            ?? Mapping(name: "Previous Desktop", button: prevBtn, action: KeyAction(key: "leftArrow", modifiers: ["control"]))
+        let next = existing("Next Desktop")
+            ?? Mapping(name: "Next Desktop", button: nextBtn, action: KeyAction(key: "rightArrow", modifiers: ["control"]))
         config.mappings = [
-            Mapping(name: "Previous Desktop", button: prevBtn, action: prev),
-            Mapping(name: "Next Desktop", button: nextBtn, action: next),
-        ] + config.mappings.filter { $0.gesture == .double }
+            Mapping(name: prev.name, button: prevBtn, gesture: prev.gesture, action: prev.action),
+            Mapping(name: next.name, button: nextBtn, gesture: next.gesture, action: next.action),
+        ] + config.mappings.filter { $0.name != "Previous Desktop" && $0.name != "Next Desktop" }
         config.verified = true
         config.verificationNote = "calibrated \(ISO8601DateFormatter().string(from: Date())) on \(lastHIDDevice): previous=buttonNumber \(prevBtn) (\(counts[prevBtn]!)x), next=buttonNumber \(nextBtn) (\(counts[nextBtn]!)x)"
         guard writeConfig(config, to: path) else { exit(4) }

@@ -260,7 +260,8 @@ final class ConfigTests: XCTestCase {
             .appendingPathComponent("../../config/config.example.json").standardized
         let c = try ConfigLoader.load(path: url.path)
         XCTAssertFalse(c.verified, "the example must never claim hardware verification")
-        XCTAssertEqual(c.mappings.count, 2)
+        XCTAssertEqual(c.mappings.filter { $0.gesture == .single }.count, 2, "Previous/Next")
+        XCTAssertEqual(c.mappings.filter { $0.gesture == .double }.count, 2, "double-click examples")
     }
 }
 
