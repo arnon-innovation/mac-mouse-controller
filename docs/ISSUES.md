@@ -142,8 +142,9 @@ Status values:
 - **Resolution:** when `run` obtained the tap only after waiting for the permission and post-event access is still not reported, it logs the reason and exits with code 75. LaunchAgent `KeepAlive.SuccessfulExit=false` restarts it immediately, and the fresh process has full access.
 - **Verification:** the restart observed in `tests/integration.sh --agent` (crash → restart) showed a clean start with no warning. The automatic exit-75 path runs only on a first-time grant; it is covered by code review, not by an automated test.
 
-## ISSUE-013 — End-to-end Space switching by mouse not yet confirmed on hardware: `OPEN`
+## ISSUE-013 — End-to-end Space switching by mouse not yet confirmed on hardware: `RESOLVED`
 
 - **Status (2026-11-21):** the installed controller is running with Accessibility. The event tap is active, the config is verified, and `tests/integration.sh --agent` gives 26/26. However, `logs/controller.log` has no `button N -> Previous/Next Desktop` line yet, so no real side-button press has gone through the installed controller.
 - **Next step:** run manual tests H3–H7 in `tests/MANUAL_TESTS.md`: previous and next switching, no double trigger, the browser does not navigate Back, and normal clicks are unaffected.
 - **Close when:** H3–H7 pass and the log shows one `->` line per press.
+- **Resolved, 2026-11-21 16:44–16:45 (Bluetooth LE):** the user tested and reported that everything works. `logs/controller.log` shows 24 actions from pid 42513: 14 × `button 3 -> Next Desktop` and 10 × `button 4 -> Previous Desktop`. There were no `FAILED` lines and no tap re-enables. The shortest gap between actions was about 0.31 s, consistent with the 300 ms debounce. H3–H7 passed according to the user's report.
