@@ -1,0 +1,7 @@
+.build/
+build/
+logs/*
+!logs/.gitkeep
+*.bak-*
+.swiftpm/
+config/config.json

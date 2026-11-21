@@ -1,0 +1,19 @@
+{
+  "enabled" : true,
+  "suppressOriginalEvent" : true,
+  "debounceMs" : 300,
+  "verified" : false,
+  "verificationNote" : "TEMPLATE ONLY. Button numbers 3/4 are the common convention, NOT verified for your mouse. Run `mouse-controller calibrate` to generate config/config.json from real button presses.",
+  "mappings" : [
+    {
+      "name" : "Previous Desktop",
+      "button" : 3,
+      "action" : { "key" : "leftArrow", "modifiers" : ["control"] }
+    },
+    {
+      "name" : "Next Desktop",
+      "button" : 4,
+      "action" : { "key" : "rightArrow", "modifiers" : ["control"] }
+    }
+  ]
+}
