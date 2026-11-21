@@ -92,7 +92,126 @@ final class EngineTests: XCTestCase {
     }
 }
 
+private let mission = Mapping(name: "Mission Control", button: 3, gesture: .double,
+                              action: KeyAction(key: "upArrow", modifiers: ["control"]))
+private let expose = Mapping(name: "App Expose", button: 4, gesture: .double,
+                             action: KeyAction(key: "downArrow", modifiers: ["control"]))
+
+final class DoubleClickTests: XCTestCase {
+    private func engine(_ mappings: [Mapping] = [prev, next, mission]) -> Engine {
+        var c = makeConfig(mappings: mappings)
+        c.doubleClickMs = 250
+        return Engine(config: c)
+    }
+
+    private func scheduledToken(_ d: Decision, file: StaticString = #filePath, line: UInt = #line) -> Int? {
+        guard case .schedule(let token, let after, _) = d else { XCTFail("expected schedule, got \(d)", file: file, line: line); return nil }
+        XCTAssertEqual(after, 0.25, accuracy: 0.0001, file: file, line: line)
+        return token
+    }
+
+    func testSingleClickIsDeferredThenFires() {
+        let e = engine()
+        let t = scheduledToken(e.handle(button: 3, phase: .down, now: 1.0))!
+        XCTAssertEqual(e.handle(button: 3, phase: .up, now: 1.08), .suppress)
+        XCTAssertEqual(e.timerFired(token: t), prev, "single action runs after the window")
+        XCTAssertNil(e.timerFired(token: t), "a timer fires at most once")
+    }
+
+    func testDoubleClickFiresDoubleAndCancelsSingle() {
+        let e = engine()
+        let t = scheduledToken(e.handle(button: 3, phase: .down, now: 1.0))!
+        _ = e.handle(button: 3, phase: .up, now: 1.08)
+        XCTAssertEqual(e.handle(button: 3, phase: .down, now: 1.20), .fire(mission, suppressOriginal: true))
+        XCTAssertNil(e.timerFired(token: t), "single action cancelled: no Desktop switch on double-click")
+    }
+
+    func testSecondPressAfterWindowIsANewSingle() {
+        let e = engine()
+        let t1 = scheduledToken(e.handle(button: 3, phase: .down, now: 1.0))!
+        _ = e.handle(button: 3, phase: .up, now: 1.05)
+        XCTAssertEqual(e.timerFired(token: t1), prev)
+        let t2 = scheduledToken(e.handle(button: 3, phase: .down, now: 1.40))!
+        XCTAssertEqual(e.timerFired(token: t2), prev)
+    }
+
+    func testTriplePressDoesNotSwitchDesktopAfterDouble() {
+        let e = engine()
+        _ = e.handle(button: 3, phase: .down, now: 1.00); _ = e.handle(button: 3, phase: .up, now: 1.05)
+        XCTAssertEqual(e.handle(button: 3, phase: .down, now: 1.15), .fire(mission, suppressOriginal: true))
+        _ = e.handle(button: 3, phase: .up, now: 1.20)
+        XCTAssertEqual(e.handle(button: 3, phase: .down, now: 1.30), .suppress, "3rd press is part of the gesture")
+    }
+
+    func testButtonWithoutDoubleMappingStaysImmediate() {
+        let e = engine()   // button 4 has no double mapping
+        XCTAssertEqual(e.handle(button: 4, phase: .down, now: 1.0), .fire(next, suppressOriginal: true))
+    }
+
+    func testDoubleOnlyButtonSinglePressDoesNothing() {
+        // Lone press: window elapses, nothing happens (no single mapping on this button).
+        let e = engine([expose])
+        let t = scheduledToken(e.handle(button: 4, phase: .down, now: 1.0))!
+        _ = e.handle(button: 4, phase: .up, now: 1.05)
+        XCTAssertNil(e.timerFired(token: t))
+        // Real double-click later: second press inside the window, before the timer.
+        _ = scheduledToken(e.handle(button: 4, phase: .down, now: 2.0))
+        _ = e.handle(button: 4, phase: .up, now: 2.05)
+        XCTAssertEqual(e.handle(button: 4, phase: .down, now: 2.1), .fire(expose, suppressOriginal: true))
+    }
+
+    func testBothButtonsIndependent() {
+        let e = engine([prev, next, mission, expose])
+        let t3 = scheduledToken(e.handle(button: 3, phase: .down, now: 1.0))!
+        _ = e.handle(button: 3, phase: .up, now: 1.05)
+        let t4 = scheduledToken(e.handle(button: 4, phase: .down, now: 1.1))!
+        XCTAssertEqual(e.timerFired(token: t3), prev)
+        XCTAssertEqual(e.timerFired(token: t4), next)
+    }
+
+    func testReloadCancelsPendingSingle() {
+        let e = engine()
+        let t = scheduledToken(e.handle(button: 3, phase: .down, now: 1.0))!
+        e.reload(makeConfig(mappings: [prev, next, mission]))
+        XCTAssertNil(e.timerFired(token: t))
+    }
+
+    func testDisabledPassesDoubleButtons() {
+        var c = makeConfig(enabled: false, mappings: [prev, mission])
+        c.doubleClickMs = 250
+        XCTAssertEqual(Engine(config: c).handle(button: 3, phase: .down, now: 1), .passThrough)
+    }
+}
+
 final class ConfigTests: XCTestCase {
+    func testGestureDefaultsToSingleAndDoubleDecodes() throws {
+        let json = #"{"mappings":[{"name":"P","button":3,"action":{"key":"leftArrow","modifiers":["control"]}},{"name":"M","button":3,"gesture":"double","action":{"key":"upArrow","modifiers":["control"]}}]}"#
+        let c = try ConfigLoader.decode(Data(json.utf8))
+        XCTAssertEqual(c.mappings.map(\.gesture), [.single, .double])
+        XCTAssertEqual(c.doubleClickMs, 250)
+    }
+
+    func testSameButtonSingleAndDoubleAllowed() {
+        XCTAssertEqual(ConfigLoader.validate(makeConfig(mappings: [prev, next, mission, expose])), [])
+    }
+
+    func testDuplicateDoubleRejected() {
+        let c = makeConfig(mappings: [mission, Mapping(name: "x", button: 3, gesture: .double, action: prev.action)])
+        XCTAssertTrue(ConfigLoader.validate(c).contains { $0.contains("(double) is mapped more than once") })
+    }
+
+    func testUnknownGestureRejected() {
+        let json = #"{"mappings":[{"name":"P","button":3,"gesture":"triple","action":{"key":"leftArrow","modifiers":["control"]}}]}"#
+        XCTAssertThrowsError(try ConfigLoader.decode(Data(json.utf8)))
+    }
+
+    func testDoubleClickMsBounds() {
+        var c = makeConfig(); c.doubleClickMs = 50
+        XCTAssertFalse(ConfigLoader.validate(c).isEmpty)
+        c.doubleClickMs = 2000
+        XCTAssertFalse(ConfigLoader.validate(c).isEmpty)
+    }
+
     func testValidConfigRoundTrips() throws {
         let c = makeConfig()
         let decoded = try ConfigLoader.decode(try ConfigLoader.encode(c))

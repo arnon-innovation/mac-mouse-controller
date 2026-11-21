@@ -18,6 +18,9 @@ Preconditions:
 | H8 | Reload | Edit `debounceMs`, run `scripts/reload.sh` | Log shows `config reloaded`; buttons still work |
 | H9 | Kill switch | `scripts/disable.sh`, press BACK | No Space switch; browser Back works again |
 | H10 | Login start | `scripts/enable.sh`, log out and back in, press FORWARD | Switches Space with no manual start |
+| H13 | Double-click 3 | Double-click buttonNumber 3 | Mission Control opens; Desktop does NOT switch. Log: `button 3 (double) -> Mission Control` |
+| H14 | Double-click 4 | Double-click buttonNumber 4 | App Exposé opens; Desktop does NOT switch |
+| H15 | Single after double feature | Single-press each button | Still switches Desktop (button with a double mapping after a ~0.25 s delay) |
 | H11 | Bluetooth | Run H1, H3 and H4 over Bluetooth | Pass |
 | H12 | 2.4 GHz dongle | Plug in the receiver, switch the mouse to 2.4G, repeat H1, H3, H4 | Pass, same button numbers (if they differ, see ISSUE-007) |
 

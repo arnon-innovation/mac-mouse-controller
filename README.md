@@ -120,10 +120,26 @@ On first start, macOS shows an Accessibility prompt for `mouse-controller`. Enab
 }
 ```
 
+### Double-click gestures
+
+Each side button can also have a **double-click** action (two presses within `doubleClickMs`, default 250 ms):
+
+```json
+{ "name": "Mission Control", "button": 3, "gesture": "double", "action": { "key": "upArrow",   "modifiers": ["control"] } },
+{ "name": "App Expose",      "button": 4, "gesture": "double", "action": { "key": "downArrow", "modifiers": ["control"] } }
+```
+
+- **Trade-off:** a button that has a double mapping waits `doubleClickMs` before running its single action, so that a double-click never also switches Desktop. Buttons without a double mapping still fire instantly.
+- A fast third press right after a double-click is ignored; it is treated as part of the same gesture.
+- `gesture` is `single` (the default if omitted) or `double`. A button can have one of each.
+- `calibrate` keeps double mappings. `swap` only swaps Previous/Next; double actions stay on their physical button.
+- Ctrl+↑ (Mission Control) and Ctrl+↓ (Application windows) are macOS defaults under Keyboard Shortcuts > Mission Control.
+
 - `button` is the CGEvent `buttonNumber`, the value reported by diagnose. Numbers 0 and 1 (left and right click) are rejected.
 - `key` can be `leftArrow`, `rightArrow`, `upArrow`, `downArrow`, `0`–`9`, `leftBracket`, `rightBracket`, `tab`, `space`, `escape`, `return`, `f3` or `f4`.
 - `modifiers` can be `control`, `option`, `command` or `shift`.
 - Example: to use "Switch to Desktop 1" (Ctrl+1) instead, set `"key": "1"` after enabling that shortcut in Keyboard Shortcuts.
+- `doubleClickMs` (100–1000) is the double-click window. Lower it if single clicks feel slow; raise it if double-clicks are missed.
 - `debounceMs` is the minimum gap between two triggers of the same button (0–5000). It prevents double switches from switch bounce or fast double presses.
 - If you changed the Mission Control shortcuts, change `action` to match.
 

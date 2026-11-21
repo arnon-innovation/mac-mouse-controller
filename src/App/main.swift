@@ -3,7 +3,7 @@ import AppKit
 import CoreGraphics
 import MouseControllerCore
 
-let version = "1.0.0"
+let version = "1.1.0"
 
 // MARK: - Argument parsing
 
@@ -201,14 +201,16 @@ func runCalibrate() -> Int32 {
         let prevBtn = order[0], nextBtn = order[1]
         var config = (try? ConfigLoader.load(path: path)) ?? ControllerConfig(mappings: [])
         func action(_ name: String, default d: KeyAction) -> KeyAction {
-            config.mappings.first { $0.name == name }?.action ?? d
+            config.mappings.first { $0.name == name && $0.gesture == .single }?.action ?? d
         }
         let prev = action("Previous Desktop", default: KeyAction(key: "leftArrow", modifiers: ["control"]))
         let next = action("Next Desktop", default: KeyAction(key: "rightArrow", modifiers: ["control"]))
+        // Double-click mappings are tied to physical button numbers, which calibration
+        // does not change: keep them.
         config.mappings = [
             Mapping(name: "Previous Desktop", button: prevBtn, action: prev),
             Mapping(name: "Next Desktop", button: nextBtn, action: next),
-        ]
+        ] + config.mappings.filter { $0.gesture == .double }
         config.verified = true
         config.verificationNote = "calibrated \(ISO8601DateFormatter().string(from: Date())) on \(lastHIDDevice): previous=buttonNumber \(prevBtn) (\(counts[prevBtn]!)x), next=buttonNumber \(nextBtn) (\(counts[nextBtn]!)x)"
         guard writeConfig(config, to: path) else { exit(4) }
@@ -305,9 +307,16 @@ func runController() -> Int32 {
         return 1
     }
     let engine = Engine(config: config)
-    Log.info("mouse-controller \(version) starting; config=\(path) enabled=\(config.enabled) debounceMs=\(config.debounceMs) suppressOriginal=\(config.suppressOriginalEvent)")
+    Log.info("mouse-controller \(version) starting; config=\(path) enabled=\(config.enabled) debounceMs=\(config.debounceMs) doubleClickMs=\(config.doubleClickMs) suppressOriginal=\(config.suppressOriginalEvent)")
     for m in config.mappings {
-        Log.info("  mapping: buttonNumber \(m.button) -> \(m.name) (\(m.action.modifiers.joined(separator: "+"))+\(m.action.key))")
+        Log.info("  mapping: buttonNumber \(m.button) \(m.gesture.rawValue) -> \(m.name) (\(m.action.modifiers.joined(separator: "+"))+\(m.action.key))")
+    }
+
+    func perform(_ mapping: Mapping, button: Int) {
+        let ok = KeySender.send(keyCode: KeyTable.keyCode(for: mapping.action.key)!,
+                                flags: KeyTable.flags(for: mapping.action))
+        let gesture = mapping.gesture == .double ? " (double)" : ""
+        Log.info("button \(button)\(gesture) -> \(mapping.name)\(ok ? "" : " FAILED to create key event")")
     }
 
     // Only extra-button events are tapped. Left/right clicks, movement and scrolling are
@@ -323,10 +332,12 @@ func runController() -> Int32 {
             return nil
         case .fire(let mapping, let suppressOriginal):
             // Post after returning from the callback: keeps the tap fast (macOS disables slow taps).
-            DispatchQueue.main.async {
-                let ok = KeySender.send(keyCode: KeyTable.keyCode(for: mapping.action.key)!,
-                                        flags: KeyTable.flags(for: mapping.action))
-                Log.info("button \(btn) -> \(mapping.name)\(ok ? "" : " FAILED to create key event")")
+            DispatchQueue.main.async { perform(mapping, button: btn) }
+            return suppressOriginal ? nil : Unmanaged.passUnretained(event)
+        case .schedule(let token, let after, let suppressOriginal):
+            // Wait to see whether a second press makes it a double-click.
+            DispatchQueue.main.asyncAfter(deadline: .now() + after) {
+                if let single = engine.timerFired(token: token) { perform(single, button: btn) }
             }
             return suppressOriginal ? nil : Unmanaged.passUnretained(event)
         }

@@ -32,7 +32,7 @@ expect_exit "run fails on missing config" 1 "$BIN" run --config "$TMP/nope.json"
 echo '{' > "$TMP/malformed.json"
 expect_exit "malformed JSON rejected" 1 "$BIN" validate --config "$TMP/malformed.json"
 
-sed 's/"button" : 3/"button" : 0/' config/config.example.json > "$TMP/leftclick.json"
+sed -E 's/"button" *: *3/"button": 0/' config/config.example.json > "$TMP/leftclick.json"
 expect_exit "mapping left click rejected" 1 "$BIN" validate --config "$TMP/leftclick.json"
 out="$("$BIN" validate --config "$TMP/leftclick.json" 2>&1)"  # capture first: pipefail would report validate's exit 1
 grep -q "left/right click" <<<"$out" && ok "left-click rejection message" || bad "left-click rejection message"
@@ -45,7 +45,7 @@ else bad "diagnose exit code $rc"; fi
 grep -q "CGEvent tap active (listen-only)" "$TMP/d.log" && ok "diagnose listen-only tap created" || bad "diagnose listen-only tap created"
 grep -q "M21-Mouse" "$TMP/d.log" && ok "M21 visible to IOHID (connected now)" || echo "SKIP  M21 not currently connected"
 
-sed 's/"verified" : false/"verified" : true/' config/config.example.json > "$TMP/swap.json"
+sed -E 's/"verified" *: *false/"verified": true/' config/config.example.json > "$TMP/swap.json"
 "$BIN" swap --config "$TMP/swap.json" >/dev/null 2>&1
 out="$("$BIN" swap --config "$TMP/swap.json" 2>&1)"   # swap twice -> back to original 3/4
 grep -q "Previous Desktop = buttonNumber 3, Next Desktop = buttonNumber 4" <<<"$out" && ok "swap is reversible" || bad "swap is reversible: $out"

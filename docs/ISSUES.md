@@ -148,3 +148,31 @@ Status values:
 - **Next step:** run manual tests H3–H7 in `tests/MANUAL_TESTS.md`: previous and next switching, no double trigger, the browser does not navigate Back, and normal clicks are unaffected.
 - **Close when:** H3–H7 pass and the log shows one `->` line per press.
 - **Resolved, 2026-11-21 16:44–16:45 (Bluetooth LE):** the user tested and reported that everything works. `logs/controller.log` shows 24 actions from pid 42513: 14 × `button 3 -> Next Desktop` and 10 × `button 4 -> Previous Desktop`. There were no `FAILED` lines and no tap re-enables. The shortest gap between actions was about 0.31 s, consistent with the 300 ms debounce. H3–H7 passed according to the user's report.
+
+## ISSUE-014 — Feature: double-click gestures (3 = Mission Control, 4 = App Exposé): `OPEN` (implemented, awaiting hardware test)
+
+- **Requested:** 2026-11-22 by the user. GitHub #14.
+- **Before:** a second press within `debounceMs` (300 ms) was swallowed, so a double-click acted as one single click.
+- **Design (option A, wait-and-see; recommended and applied, since the user did not pick between A and B):**
+  - `Mapping.gesture` is `single` (the default) or `double`, and `doubleClickMs` defaults to 250.
+  - When a button has a double mapping, the engine returns `.schedule(token, after)` instead of firing. A second press within the window fires the double action and cancels the single action; otherwise `timerFired(token)` returns the single action.
+  - A third press inside the window is swallowed.
+  - Buttons without a double mapping keep firing instantly, with debounce.
+  - `calibrate` preserves double mappings.
+- **Bug found during implementation:** a fast triple press would have started a new cycle and switched Desktop after Mission Control. Guarded, and covered by `testTriplePressDoesNotSwitchDesktopAfterDouble`.
+- **Test bug found:** `testDoubleOnlyButtonSinglePressDoesNothing` first fired the timer and then sent a "second press" earlier in virtual time, an impossible ordering. The engine was right; the test timeline was fixed.
+- **Verification:**
+  - `swift test` gives 35/35 (14 new tests for double-click and config).
+  - Installed v1.1.0. The log shows `buttonNumber 3 double -> Mission Control` and `buttonNumber 4 double -> App Expose` loaded and the tap active.
+  - Hardware tests H13–H15 are pending.
+
+## ISSUE-015 — Scripts matched JSON with a fixed whitespace format: `RESOLVED`
+
+- **Found:** 2026-11-22, `tests/integration.sh` after the config files were rewritten by a JSON tool that writes `"key": value` instead of Swift's `"key" : value`.
+- **Repro:** edit `config/config.json` with any editor or tool that writes `"verified": true`, then run `scripts/calibrate.sh`.
+- **Expected:** "OK: … written".
+- **Actual:** "Config not written". In tests, `sed 's/"button" : 3/…/'` stopped matching, so "mapping left click rejected" failed (exit 0, wanted 1).
+- **Root cause:** the shell scripts parsed JSON assuming the exact whitespace produced by `JSONEncoder.prettyPrinted`.
+- **Resolution:** all greps and seds now use `"key" *: *value` (`grep -E`, `sed -E`). `install.sh` was already tolerant.
+- **Verification:** `tests/integration.sh --agent` gives 26/26.
+- **Prevention:** never match JSON with literal whitespace in shell. Prefer the binary's `validate` command, or tolerant regexes.
