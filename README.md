@@ -192,3 +192,7 @@ Hardware tests (real button presses, Space switching, clicks unaffected, Bluetoo
 - 2.4 GHz mode is untested (ISSUE-007). Logi Options+ coexistence has not been characterized (ISSUE-008).
 - In secure input fields (password prompts), macOS may block synthetic keystrokes.
 - `current-space` uses a private SkyLight call for diagnostics only. It may break in a future macOS release; the controller does not depend on it.
+
+## License
+
+[MIT](LICENSE)
