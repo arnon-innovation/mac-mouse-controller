@@ -1,6 +1,6 @@
 # Issue log
 
-This is a local issue tracker; the user chose not to use GitHub. Each entry records reproduction steps, expected vs actual behaviour, root cause, resolution and verification. Commit references are filled in once the change is committed.
+Each entry is mirrored as a GitHub Issue with the same number (ISSUE-007 = #7): https://github.com/arnon-innovation/mac-mouse-controller/issues. Open problems are tracked on GitHub; this file keeps the full history in the repo. Each entry records reproduction steps, expected vs actual behaviour, root cause, resolution and verification. Commit references are filled in once the change is committed.
 
 Status values:
 - `OPEN`: not resolved.
