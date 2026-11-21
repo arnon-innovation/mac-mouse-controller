@@ -374,7 +374,7 @@ func runController() -> Int32 {
                 return
             }
             engine.reload(fresh)
-            Log.info("config reloaded: enabled=\(fresh.enabled) mappings=\(fresh.mappings.map { "\($0.button)->\($0.name)" })")
+            Log.info("config reloaded: enabled=\(fresh.enabled) mappings=\(fresh.mappings.map { "\($0.button)/\($0.gesture.rawValue)->\($0.name)" })")
         } catch {
             Log.error("reload failed, keeping previous config: \(error)")
         }
